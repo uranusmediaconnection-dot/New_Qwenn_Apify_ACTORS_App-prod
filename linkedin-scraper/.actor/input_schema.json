@@ -1,0 +1,13 @@
+{
+  "title": "LinkedIn Scraper Input",
+  "type": "object",
+  "schemaVersion": 1,
+  "properties": {
+    "urls": {
+      "title": "LinkedIn Public URLs",
+      "type": "array",
+      "editor": "json"
+    }
+  },
+  "required": ["urls"]
+}

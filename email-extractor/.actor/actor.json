@@ -1,0 +1,8 @@
+{
+  "actorSpecification": 1,
+  "name": "email-extractor",
+  "title": "Business Email Extractor",
+  "description": "Crawls target domains to discover business emails, including JavaScript-rendered and obfuscated addresses, with deduplication.",
+  "version": "1.0",
+  "buildTag": "latest"
+}

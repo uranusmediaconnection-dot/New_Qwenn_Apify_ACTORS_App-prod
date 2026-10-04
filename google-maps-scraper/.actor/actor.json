@@ -1,0 +1,8 @@
+{
+  "actorSpecification": 1,
+  "name": "google-maps-scraper",
+  "title": "Google Maps Scraper",
+  "description": "Extracts business listings from Google Maps search results using Playwright with residential proxies, auto-scroll result loading, and low concurrency to avoid rate limits.",
+  "version": "1.0",
+  "buildTag": "latest"
+}

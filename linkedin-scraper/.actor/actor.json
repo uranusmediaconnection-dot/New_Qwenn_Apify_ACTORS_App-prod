@@ -1,0 +1,8 @@
+{
+  "actorSpecification": 1,
+  "name": "linkedin-scraper",
+  "title": "LinkedIn Lead Scraper (Public Profiles)",
+  "description": "Extracts public firmographic and profile data from LinkedIn URLs via JSON-LD structured data with stealth settings and residential proxies. Public pages only - no login required.",
+  "version": "1.0",
+  "buildTag": "latest"
+}

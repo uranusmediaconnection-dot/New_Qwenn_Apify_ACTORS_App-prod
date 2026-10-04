@@ -1,0 +1,28 @@
+name: Deploy Actors to Apify
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Each actor lives in its own top-level folder
+        actor: [google-maps-scraper, linkedin-scraper, email-extractor]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install Apify CLI
+        run: npm install -g apify-cli
+      - name: Deploy Actor
+        env:
+          # apify-cli authenticates natively via the APIFY_TOKEN environment variable
+          APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
+        run: apify push
+        working-directory: ${{ matrix.actor }}
