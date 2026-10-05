@@ -14,7 +14,7 @@
  *  - Randomized human-like pacing + low default concurrency
  *  - Stable `data-item-id` selectors on detail pages + card-based fallback
  *  - Per-query result budgets and automatic deduplication by place URL
- *  - Pay-per-event hook: SCRAPE_RESULT charged for every `ok` lead
+ *  - Pay-per-event hook: RESULT charged for every `ok` lead ($0.0025 = $2.50/1k)
  *  - Dataset + output schemas for Console views and AI-agent integration
  */
 import os from 'node:os';
@@ -22,7 +22,10 @@ import { Actor } from 'apify';
 import { PlaywrightCrawler, createPlaywrightRouter, log } from 'crawlee';
 import { normalizeMapsInput } from './input-normalizer.js';
 
-const CHARGE_EVENT = 'SCRAPE_RESULT';
+// Must match the PPE event name configured in Apify Console -> Publishing ->
+// Monetization (Pay per event). Renamed from SCRAPE_RESULT to RESULT so it
+// follows the Apify pay-per-result convention; override via APIFY_CHARGE_EVENT.
+const CHARGE_EVENT = process.env.APIFY_CHARGE_EVENT || 'RESULT';
 const HARD_MAX_REQUESTS = 20000;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));

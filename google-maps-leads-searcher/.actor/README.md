@@ -55,9 +55,10 @@ You pay only for **successfully scraped leads**:
 
 | Event | Charged when | Price |
 |---|---|---|
-| `SCRAPE_RESULT` | One place saved with `status: "ok"` | **$5.00 per 1,000 places** ($0.005 each) |
+| `RESULT` | One place saved with `status: "ok"` | **$2.50 per 1,000 places** ($0.0025 each) |
 
 - `partial`, `no-results` and `failed` records are **never charged**.
+- First **2,500 results every month are free**.
 - Platform usage (compute + proxy) is included in your Apify plan usage — set a
   **Max total charge** on the run to cap spend; the actor respects it automatically.
 - Typical proxy/compute cost: ~$1–2 per 1,000 places with details, ~$0.40 list-only.

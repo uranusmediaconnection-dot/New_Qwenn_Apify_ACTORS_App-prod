@@ -1,0 +1,40 @@
+{
+  "requestsFinished": 8,
+  "requestsFailed": 0,
+  "requestsRetries": 1,
+  "requestsFailedPerMinute": 0,
+  "requestsFinishedPerMinute": 13,
+  "requestMinDurationMillis": 4103,
+  "requestMaxDurationMillis": 5406,
+  "requestTotalFailedDurationMillis": 0,
+  "requestTotalFinishedDurationMillis": 37087,
+  "crawlerStartedAt": "2026-10-05T09:09:15.839Z",
+  "crawlerFinishedAt": "2026-10-05T09:09:53.492Z",
+  "statsPersistedAt": "2026-10-05T09:09:53.493Z",
+  "crawlerRuntimeMillis": 38071,
+  "crawlerLastStartTimestamp": 1791191355422,
+  "requestRetryHistogram": [
+    7,
+    1
+  ],
+  "statsId": "0",
+  "requestAvgFailedDurationMillis": null,
+  "requestAvgFinishedDurationMillis": 4636,
+  "requestTotalDurationMillis": 37087,
+  "requestsTotal": 8,
+  "requestsWithStatusCode": {
+    "200": 8
+  },
+  "errors": {},
+  "retryErrors": {
+    "/workspace/google-maps-leads-searcher/node_modules/@crawlee/playwright/internals/utils/playwright-utils.js:168:17": {
+      "missing error code": {
+        "Error": {
+          "page.goto: Target page, context or browser has been closed": {
+            "count": 1
+          }
+        }
+      }
+    }
+  }
+}
