@@ -22,6 +22,7 @@ Chromium browsers, residential proxies and human-like pacing.
 | `openingHours` | Open ⋅ Closes 5 PM |
 | `latitude` / `longitude` | 30.2500 / -97.7500 |
 | `placeUrl` | Canonical Google Maps place link |
+| `placeId` | Canonical Google Place ID (`ChIJ...`) or feature id — stable across runs |
 | `status` | `ok`, `partial`, `no-results` or `failed` — every record is honest about its quality |
 
 Console **Output views**: *Leads* (contact-ready table) and *Diagnostics* (statuses & errors).

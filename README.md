@@ -81,6 +81,19 @@ cd ../email-extractor && apify push
 3. Set the actor's source directory to its folder (e.g. `google-maps-leads-searcher`).
 4. Builds then trigger automatically on every push.
 
+## Publishing status
+
+All three actors are **published (public)** on Apify Store under the `sitcod3.lab`
+developer account:
+
+- https://apify.com/sitcod3.lab/google-maps-leads-searcher
+- https://apify.com/sitcod3.lab/linkedin-leads-collector
+- https://apify.com/sitcod3.lab/email-extractor
+
+They currently show **Pay per usage** (clients pay platform costs only) until
+pay-per-event monetization is switched on in the Console (Publishing → Monetization)
+with the event names/prices below.
+
 ## Monetization (Pay-Per-Event)
 
 All three actors ship with **pay-per-event charging hooks** (`Actor.charge`) and only

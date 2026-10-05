@@ -134,6 +134,15 @@ const proxyConfiguration = await buildProxyConfiguration();
 const seenUrls = new Set();
 const perQueryCount = new Map();
 
+/** Canonical Google Place ID (!19sChIJ...) or feature id (!1s0x..:0x..) from a place URL. */
+function parsePlaceId(url) {
+    const u = String(url);
+    const pid = u.match(/!19s([A-Za-z0-9_-]{10,})/);
+    if (pid) return pid[1];
+    const ftid = u.match(/!1s(0x[0-9a-fA-F]+:0x[0-9a-fA-F]+)/);
+    return ftid ? ftid[1] : null;
+}
+
 function parseCoordinates(url) {
     let m = String(url).match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
     if (!m) m = String(url).match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/);
@@ -266,6 +275,7 @@ async function pushDetailItem({ page, pageUrl, query, card, source }) {
         searchQuery: query ?? null,
         status: (d.name || card?.name) ? 'ok' : 'partial',
         source,
+        placeId: parsePlaceId(pageUrl),
         name: d.name || card?.name || null,
         category: d.category || card?.category || null,
         address: d.address || card?.address || null,
@@ -380,6 +390,7 @@ async function handleFeed({ page, request, session, enqueueLinks, log: l }) {
                 searchQuery: query,
                 status: c.name ? 'ok' : 'partial',
                 source: 'feed',
+                placeId: parsePlaceId(c.placeUrl),
                 name: c.name,
                 category: c.category,
                 address: c.address,

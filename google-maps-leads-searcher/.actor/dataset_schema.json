@@ -104,6 +104,15 @@
         "type": "string",
         "title": "Google Maps place URL"
       },
+      "placeId": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "title": "Google Place ID",
+        "description": "Canonical place identifier (ChIJ... or feature id) - stable across runs; feed it back via placeIds-style re-runs.",
+        "example": "ChIJMTPiK98sDogRyvG0QTKkxK8"
+      },
       "searchQuery": {
         "type": [
           "string",
