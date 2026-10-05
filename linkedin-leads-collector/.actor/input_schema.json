@@ -1,12 +1,12 @@
 {
-  "title": "LinkedIn Leads Collector Input",
+  "title": "LinkedIn Leads Collector",
   "type": "object",
   "schemaVersion": 1,
   "properties": {
     "urls": {
       "title": "LinkedIn URLs",
       "type": "array",
-      "description": "Public LinkedIn profile (/in/...) or company (/company/...) URLs. Authenticated surfaces (people search, employee lists) are not supported - public pages only.",
+      "description": "Public LinkedIn profile (/in/...) or company (/company/...) URLs - one per line. Authenticated surfaces (people search, employee lists) are not supported. API alias: startUrls.",
       "editor": "stringList",
       "prefill": [
         "https://www.linkedin.com/in/williamhgates/",
@@ -14,29 +14,34 @@
       ]
     },
     "maxConcurrency": {
-      "title": "Max Concurrency",
+      "title": "Max concurrency",
       "type": "integer",
-      "description": "Parallel pages. LinkedIn is very sensitive - keep at 1-2.",
+      "description": "Parallel pages. LinkedIn is very sensitive to traffic patterns - keep at 1-2.",
       "default": 1,
-      "maximum": 5
+      "minimum": 1,
+      "maximum": 5,
+      "sectionCaption": "Performance & safety",
+      "sectionDescription": "Lower values are slower but much less likely to trigger sign-in walls."
     },
     "includeRawText": {
-      "title": "Include Raw Text Snippet",
+      "title": "Include raw text snippet",
       "type": "boolean",
-      "description": "Add a 1000-character raw text snippet of the page to each dataset item (useful for custom enrichment).",
+      "description": "Add a 1000-character raw text snippet of the page to each item (useful for custom enrichment pipelines).",
       "default": false
     },
     "proxyConfiguration": {
-      "title": "Proxy Configuration",
+      "title": "Proxy configuration",
       "type": "object",
-      "description": "Residential proxies are strongly recommended for LinkedIn.",
+      "description": "RESIDENTIAL proxies are strongly recommended for LinkedIn. Consider a proxy country matching the profiles' region.",
       "prefill": {
         "useApifyProxy": true,
         "apifyProxyGroups": [
           "RESIDENTIAL"
         ]
       },
-      "editor": "proxy"
+      "editor": "proxy",
+      "sectionCaption": "Proxy",
+      "sectionDescription": "Anti-blocking configuration."
     }
   },
   "required": [

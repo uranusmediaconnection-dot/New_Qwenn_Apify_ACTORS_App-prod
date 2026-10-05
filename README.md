@@ -81,6 +81,33 @@ cd ../email-extractor && apify push
 3. Set the actor's source directory to its folder (e.g. `google-maps-leads-searcher`).
 4. Builds then trigger automatically on every push.
 
+## Monetization (Pay-Per-Event)
+
+All three actors ship with **pay-per-event charging hooks** (`Actor.charge`) and only
+charge for successful results:
+
+| Actor | Event | Charged when | Suggested price |
+| :--- | :--- | :--- | :--- |
+| Google Maps Leads Searcher | `SCRAPE_RESULT` | one place saved with `status: "ok"` | $5.00 / 1,000 places |
+| LinkedIn Leads Collector | `PROFILE_SCRAPED` | one URL collected with `status: "ok"` | $10.00 / 1,000 profiles |
+| Business Email Extractor | `EMAIL_FOUND` | one unique email saved | $2.00 / 1,000 emails |
+
+`partial` / `blocked` / `failed` / `no-results` records are never charged. Charges are
+no-ops until each actor's monetization is enabled in the Apify Console
+(**Publishing → Monetization → Pay per event**, define the event names above, pick the
+primary event). Publishing to the Store additionally requires the output schema (already
+in `.actor/output_schema.json` for every actor) and a completed Publishing checklist.
+
+## Actor Quality Assets (per actor, in `.actor/`)
+
+- `input_schema.json` — console input form (stringList/proxy editors, sections, prefills)
+- `dataset_schema.json` — item validation + Console **Output views** (`leads`/`emails` + `diagnostics`)
+- `output_schema.json` — run output links for Console + AI-agent/MCP integration (required for Store)
+- `README.md` — full client manual: quick start, pricing, API examples, pipeline chaining, troubleshooting, legal
+
+Runtime diagnostics in each run's key-value store: `METRICS` (counters incl. charged events),
+`FAILED_REQUESTS` (re-runnable URLs), `BLOCKED_SCREENSHOT_*` (what the target site showed when blocking).
+
 ## Operational Notes
 
 - **Proxies**: all actors default to the Apify Proxy `RESIDENTIAL` group — datacenter IPs
@@ -94,4 +121,10 @@ cd ../email-extractor && apify push
   to `email-extractor` as `startUrls` for an end-to-end lead list.
 - **Status fields**: every dataset item carries a `status` (`ok` / `partial` / `blocked`
   / `failed` / `no-results`) so incomplete scrapes are visible instead of silently lost.
+- **Compass-style input aliases** (Maps): `searchQueries`, `maxPlacesPerQuery`,
+  `maxCrawledPlacesPerSearch`, `scrapeDetails`, `proxyConfig` and direct `placeUrls`
+  are accepted via `src/input-normalizer.js`.
+- **enqueueLinks strategy**: Maps detail requests are enqueued with `strategy: 'all'` —
+  Google's `consent.google.com` redirects cross hostnames and would otherwise be
+  silently skipped by Crawlee's default SameHostname strategy.
 - Full design rationale, anti-bot analysis, and alternatives: [`docs/research-report.md`](docs/research-report.md).

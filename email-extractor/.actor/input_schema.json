@@ -1,28 +1,67 @@
 {
-  "title": "Email Extractor Input",
+  "title": "Business Email Extractor",
   "type": "object",
   "schemaVersion": 1,
   "properties": {
     "startUrls": {
       "title": "Start URLs",
       "type": "array",
-      "description": "Pages to start crawling from, e.g. a company website. Only same-origin links are followed.",
+      "description": "Websites to crawl, e.g. leads' homepages from the Google Maps Leads Searcher or LinkedIn Leads Collector. Only same-origin links are followed.",
       "editor": "requestListSources",
-      "prefill": [{ "url": "https://apify.com" }]
+      "prefill": [
+        {
+          "url": "https://apify.com"
+        }
+      ]
     },
     "maxDepth": {
-      "title": "Crawl Depth",
+      "title": "Crawl depth",
       "type": "integer",
-      "description": "Maximum crawl depth from the start URLs (currently the crawler extracts emails from start URLs and links one level deep).",
-      "default": 2
+      "description": "How many link levels to follow from each start URL (0 = only the start page). Contact/About/Team pages are crawled first at every level.",
+      "default": 2,
+      "minimum": 1,
+      "maximum": 5,
+      "sectionCaption": "Crawl budget",
+      "sectionDescription": "Lower budgets are faster and cheaper; most business emails live on contact pages within depth 2."
+    },
+    "maxPages": {
+      "title": "Max pages",
+      "type": "integer",
+      "description": "Hard cap on pages crawled per run (all start URLs combined).",
+      "default": 100,
+      "minimum": 1,
+      "maximum": 1000
+    },
+    "maxConcurrency": {
+      "title": "Max concurrency",
+      "type": "integer",
+      "description": "Parallel browser pages.",
+      "default": 5,
+      "minimum": 1,
+      "maximum": 20
+    },
+    "excludeRoleEmails": {
+      "title": "Exclude role emails",
+      "type": "boolean",
+      "description": "Skip generic addresses like info@, sales@, support@ - keep only person-style addresses.",
+      "default": false
     },
     "proxyConfiguration": {
-      "title": "Proxy Configuration",
+      "title": "Proxy configuration",
       "type": "object",
-      "description": "Apify Proxy configuration. Residential proxies are recommended for sites with anti-bot protection.",
-      "prefill": { "useApifyProxy": true, "apifyProxyGroups": ["RESIDENTIAL"] },
-      "editor": "proxy"
+      "description": "Residential proxies help with sites behind anti-bot protection.",
+      "prefill": {
+        "useApifyProxy": true,
+        "apifyProxyGroups": [
+          "RESIDENTIAL"
+        ]
+      },
+      "editor": "proxy",
+      "sectionCaption": "Proxy",
+      "sectionDescription": "Anti-blocking configuration."
     }
   },
-  "required": ["startUrls"]
+  "required": [
+    "startUrls"
+  ]
 }

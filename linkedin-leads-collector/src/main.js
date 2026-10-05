@@ -27,7 +27,8 @@ await Actor.init();
 
 const input = (await Actor.getInput()) ?? {};
 
-const urls = (Array.isArray(input.urls) ? input.urls : [])
+const rawUrls = Array.isArray(input.urls) ? input.urls : (Array.isArray(input.startUrls) ? input.startUrls : []);
+const urls = rawUrls
     .map((u) => (typeof u === 'string' ? u.trim() : String(u?.url ?? '').trim()))
     .filter(Boolean);
 
@@ -71,6 +72,55 @@ const proxyConfiguration = await buildProxyConfiguration();
 let processed = 0;
 async function updateStatus() {
     await Actor.setStatusMessage(`Processed ${processed}/${urls.length} URL(s)`).catch(() => {});
+}
+
+/* ------------------------------------------------------------------ */
+/* Metrics, diagnostics and pay-per-event charging                     */
+/* ------------------------------------------------------------------ */
+const CHARGE_EVENT = 'PROFILE_SCRAPED';
+const metrics = {
+    startedAt: new Date().toISOString(),
+    urls: urls.length,
+    processed: 0,
+    okCount: 0,
+    partialCount: 0,
+    blockedCount: 0,
+    failedCount: 0,
+    chargedEvents: 0,
+    finishedAt: null,
+};
+const failedRequests = [];
+let blockShots = 0;
+
+async function saveBlockScreenshot(page, url) {
+    if (blockShots >= 3) return;
+    blockShots += 1;
+    try {
+        const buf = await page.screenshot({ type: 'png' });
+        await Actor.setValue(`BLOCKED_SCREENSHOT_${blockShots}`, buf, { contentType: 'image/png' });
+        log.warning(`Sign-in wall screenshot saved as BLOCKED_SCREENSHOT_${blockShots} (${url})`);
+    } catch { /* best effort */ }
+}
+
+/** Push one dataset item first (data safety), then attempt the PPE charge for `ok` results. */
+async function pushItem(item) {
+    try {
+        await Actor.pushData(item);
+    } catch (err) {
+        log.error(`pushData rejected (dataset schema?): ${String(err?.message).slice(0, 300)}`);
+        return;
+    }
+    if (item.status === 'ok') {
+        metrics.okCount += 1;
+        try {
+            const res = await Actor.charge({ eventName: CHARGE_EVENT });
+            if (res && typeof res.chargedCount === 'number') metrics.chargedEvents += res.chargedCount;
+        } catch (err) {
+            log.debug(`Charge skipped (${String(err?.message).slice(0, 120)})`);
+        }
+    } else if (item.status === 'partial') metrics.partialCount += 1;
+    else if (item.status === 'blocked') metrics.blockedCount += 1;
+    else if (item.status === 'failed') metrics.failedCount += 1;
 }
 
 /* ------------------------------------------------------------------ */
@@ -146,13 +196,14 @@ const extractProfile = () => {
 /* ------------------------------------------------------------------ */
 const router = createPlaywrightRouter();
 
-router.addDefaultHandler(async ({ page, request, session, pushData, log: l }) => {
+router.addDefaultHandler(async ({ page, request, session, log: l }) => {
     const url = request.url;
     const finalUrl = page.url();
 
     // Auth wall / login redirect => blocked: rotate session + IP and retry
     if (/authwall|\/login\/|\/checkpoint\/|\/uas\/login/i.test(finalUrl)) {
         l.warning(`LinkedIn served an auth wall for ${url} - retiring session and retrying with a new proxy IP.`);
+        await saveBlockScreenshot(page, url);
         session?.retire();
         throw new Error('AUTHWALL: LinkedIn redirected to the login/auth wall');
     }
@@ -176,17 +227,19 @@ router.addDefaultHandler(async ({ page, request, session, pushData, log: l }) =>
     const wallTitle = /LinkedIn Login|Sign Up \| LinkedIn|Join LinkedIn/i.test(pageTitle || '') && !data.headline && !data.about;
     if (wallName || wallTitle || /authwall|\/login\/|\/checkpoint\/|\/uas\/login/i.test(page.url())) {
         l.warning(`LinkedIn served a sign-in wall for ${url} (title: "${pageTitle}") - retiring session and retrying with a new proxy IP.`);
+        await saveBlockScreenshot(page, url);
         session?.retire();
         throw new Error('AUTHWALL: LinkedIn served a sign-in/auth wall');
     }
 
     processed += 1;
+    metrics.processed = processed;
     await updateStatus();
 
     const status = data.name ? 'ok' : 'partial';
     if (!data.name) l.warning(`No structured data extracted for ${url} (status: partial).`);
 
-    await pushData({
+    await pushItem({
         url,
         finalUrl,
         type: data.type,
@@ -210,6 +263,7 @@ const crawler = new PlaywrightCrawler({
     requestHandler: router,
     maxConcurrency,
     maxRequestRetries: 5,
+    retryOnBlocked: true,
     navigationTimeoutSecs: 60,
     requestHandlerTimeoutSecs: 120,
     useSessionPool: true,
@@ -230,13 +284,15 @@ const crawler = new PlaywrightCrawler({
         const blocked = msg.includes('AUTHWALL');
         l.error(`Giving up on ${request.url}: ${msg}`);
         processed += 1;
+        metrics.processed = processed;
         await updateStatus();
-        await Actor.pushData({
+        failedRequests.push({ url: request.url, status: blocked ? 'blocked' : 'failed', error: msg.slice(0, 300) });
+        await pushItem({
             url: request.url,
             status: blocked ? 'blocked' : 'failed',
             error: msg.slice(0, 300),
             scrapedAt: new Date().toISOString(),
-        }).catch(() => {});
+        });
     },
 });
 
@@ -248,9 +304,17 @@ log.info(
 try {
     await Actor.setStatusMessage(`Collecting ${urls.length} LinkedIn URL(s)...`);
     await crawler.run(urls);
-    await Actor.setStatusMessage(`Finished: processed ${processed}/${urls.length} URL(s).`, { level: 'SUCCESS' });
+    metrics.finishedAt = new Date().toISOString();
+    await Actor.setValue('METRICS', metrics);
+    if (failedRequests.length) await Actor.setValue('FAILED_REQUESTS', failedRequests);
+    await Actor.setStatusMessage(
+        `Finished: ${metrics.okCount} ok, ${metrics.partialCount} partial, ${metrics.blockedCount} blocked, ${metrics.failedCount} failed of ${urls.length} URL(s).`,
+        { level: 'SUCCESS' },
+    );
     await Actor.exit();
 } catch (err) {
     log.exception(err, 'Actor run failed');
+    metrics.finishedAt = new Date().toISOString();
+    await Actor.setValue('METRICS', metrics).catch(() => {});
     await Actor.fail(`Run failed: ${err.message}`);
 }

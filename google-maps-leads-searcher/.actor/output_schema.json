@@ -1,0 +1,25 @@
+{
+  "actorOutputSchemaVersion": 1,
+  "title": "Google Maps Leads Searcher output",
+  "description": "Business leads in the default dataset (Leads view), diagnostics view for failures, and run metrics in the key-value store.",
+  "properties": {
+    "leads": {
+      "type": "string",
+      "title": "Business leads",
+      "description": "Scraped places with name, category, address, phone, website, rating, reviews and coordinates.",
+      "template": "{{links.apiDefaultDatasetUrl}}/items?view=leads"
+    },
+    "diagnostics": {
+      "type": "string",
+      "title": "Diagnostics",
+      "description": "Per-query/per-place status including no-results and failed records.",
+      "template": "{{links.apiDefaultDatasetUrl}}/items?view=diagnostics"
+    },
+    "metrics": {
+      "type": "string",
+      "title": "Run metrics",
+      "description": "Counters: places saved, ok/partial/failed, CAPTCHA blocks, charged events.",
+      "template": "{{links.apiDefaultKeyValueStoreUrl}}/records/METRICS"
+    }
+  }
+}

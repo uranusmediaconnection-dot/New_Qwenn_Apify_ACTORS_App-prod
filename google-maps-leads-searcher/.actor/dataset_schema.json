@@ -1,0 +1,238 @@
+{
+  "actorSpecification": 1,
+  "fields": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "description": "A business lead scraped from Google Maps, or a diagnostic record (no-results/failed).",
+    "properties": {
+      "status": {
+        "type": "string",
+        "title": "Status",
+        "description": "ok = complete lead, partial = missing name, no-results = query matched nothing, failed = request failed after retries",
+        "enum": [
+          "ok",
+          "partial",
+          "no-results",
+          "failed"
+        ]
+      },
+      "name": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "title": "Business name",
+        "example": "Bright Smile Dental"
+      },
+      "category": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "title": "Category",
+        "example": "Dental clinic"
+      },
+      "address": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "title": "Address",
+        "example": "1200 S Lamar Blvd, Austin, TX 78704"
+      },
+      "phone": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "title": "Phone",
+        "example": "+1 512-555-0142"
+      },
+      "website": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "title": "Website",
+        "example": "https://brightsmile.example"
+      },
+      "rating": {
+        "type": [
+          "number",
+          "null"
+        ],
+        "title": "Rating",
+        "example": 4.8
+      },
+      "reviewsCount": {
+        "type": [
+          "integer",
+          "null"
+        ],
+        "title": "Reviews",
+        "example": 342
+      },
+      "openingHours": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "title": "Opening hours"
+      },
+      "plusCode": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "title": "Plus code"
+      },
+      "latitude": {
+        "type": [
+          "number",
+          "null"
+        ],
+        "title": "Latitude"
+      },
+      "longitude": {
+        "type": [
+          "number",
+          "null"
+        ],
+        "title": "Longitude"
+      },
+      "placeUrl": {
+        "type": "string",
+        "title": "Google Maps place URL"
+      },
+      "searchQuery": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "title": "Search query"
+      },
+      "source": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "title": "Extraction source",
+        "description": "detail | feed | direct-redirect | direct-url"
+      },
+      "error": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "title": "Error (failed items)"
+      },
+      "pageTitle": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "title": "Page title (no-results diagnostics)"
+      },
+      "bodySnippet": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "title": "Page text snippet (no-results diagnostics)"
+      },
+      "scrapedAt": {
+        "type": "string",
+        "title": "Scraped at",
+        "description": "ISO-8601 timestamp"
+      }
+    },
+    "required": [
+      "status",
+      "scrapedAt"
+    ],
+    "additionalProperties": true
+  },
+  "views": {
+    "leads": {
+      "title": "Leads",
+      "description": "Business leads with contact details",
+      "transformation": {
+        "fields": [
+          "name",
+          "category",
+          "rating",
+          "reviewsCount",
+          "phone",
+          "website",
+          "address",
+          "searchQuery",
+          "placeUrl"
+        ]
+      },
+      "display": {
+        "component": "table",
+        "properties": {
+          "name": {
+            "label": "Business",
+            "format": "text"
+          },
+          "category": {
+            "label": "Category",
+            "format": "text"
+          },
+          "rating": {
+            "label": "Rating",
+            "format": "number"
+          },
+          "reviewsCount": {
+            "label": "Reviews",
+            "format": "number"
+          },
+          "phone": {
+            "label": "Phone",
+            "format": "text"
+          },
+          "website": {
+            "label": "Website",
+            "format": "link"
+          },
+          "address": {
+            "label": "Address",
+            "format": "text"
+          },
+          "placeUrl": {
+            "label": "Maps URL",
+            "format": "link"
+          }
+        }
+      }
+    },
+    "diagnostics": {
+      "title": "Diagnostics",
+      "description": "Status of every processed query/place, including failures",
+      "transformation": {
+        "fields": [
+          "status",
+          "name",
+          "searchQuery",
+          "placeUrl",
+          "error",
+          "scrapedAt"
+        ]
+      },
+      "display": {
+        "component": "table",
+        "properties": {
+          "status": {
+            "label": "Status",
+            "format": "text"
+          },
+          "placeUrl": {
+            "label": "URL",
+            "format": "link"
+          }
+        }
+      }
+    }
+  }
+}

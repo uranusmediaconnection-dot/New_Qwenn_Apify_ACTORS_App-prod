@@ -1,0 +1,188 @@
+{
+  "actorSpecification": 1,
+  "fields": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "description": "A lead collected from a public LinkedIn profile or company page, or a diagnostic record (blocked/failed).",
+    "properties": {
+      "status": {
+        "type": "string",
+        "title": "Status",
+        "description": "ok = data extracted, partial = page loaded but no structured data, blocked = sign-in wall persisted after retries, failed = request error",
+        "enum": [
+          "ok",
+          "partial",
+          "blocked",
+          "failed"
+        ]
+      },
+      "type": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "title": "Page type",
+        "enum": [
+          "person",
+          "company",
+          null
+        ]
+      },
+      "name": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "title": "Name",
+        "example": "Bill Gates"
+      },
+      "headline": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "title": "Headline / tagline",
+        "example": "Co-chair, Bill & Melinda Gates Foundation"
+      },
+      "location": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "title": "Location",
+        "example": "Seattle, Washington"
+      },
+      "about": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "title": "About"
+      },
+      "website": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "title": "Website (company pages)"
+      },
+      "followers": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "title": "Followers (company pages)",
+        "example": "12,345,678 followers"
+      },
+      "rawText": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "title": "Raw text snippet (opt-in)"
+      },
+      "url": {
+        "type": "string",
+        "title": "Requested URL"
+      },
+      "finalUrl": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "title": "Resolved URL"
+      },
+      "error": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "title": "Error (blocked/failed items)"
+      },
+      "scrapedAt": {
+        "type": "string",
+        "title": "Scraped at",
+        "description": "ISO-8601 timestamp"
+      }
+    },
+    "required": [
+      "status",
+      "url",
+      "scrapedAt"
+    ],
+    "additionalProperties": true
+  },
+  "views": {
+    "leads": {
+      "title": "Leads",
+      "description": "Collected profiles and companies",
+      "transformation": {
+        "fields": [
+          "name",
+          "type",
+          "headline",
+          "location",
+          "website",
+          "followers",
+          "status",
+          "url"
+        ]
+      },
+      "display": {
+        "component": "table",
+        "properties": {
+          "name": {
+            "label": "Name",
+            "format": "text"
+          },
+          "type": {
+            "label": "Type",
+            "format": "text"
+          },
+          "headline": {
+            "label": "Headline",
+            "format": "text"
+          },
+          "location": {
+            "label": "Location",
+            "format": "text"
+          },
+          "website": {
+            "label": "Website",
+            "format": "link"
+          },
+          "url": {
+            "label": "LinkedIn URL",
+            "format": "link"
+          }
+        }
+      }
+    },
+    "diagnostics": {
+      "title": "Diagnostics",
+      "description": "Status of every URL including blocked and failed",
+      "transformation": {
+        "fields": [
+          "status",
+          "name",
+          "url",
+          "error",
+          "scrapedAt"
+        ]
+      },
+      "display": {
+        "component": "table",
+        "properties": {
+          "status": {
+            "label": "Status",
+            "format": "text"
+          },
+          "url": {
+            "label": "URL",
+            "format": "link"
+          }
+        }
+      }
+    }
+  }
+}

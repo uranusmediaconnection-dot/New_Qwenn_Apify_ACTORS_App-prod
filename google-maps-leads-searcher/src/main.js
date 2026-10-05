@@ -4,21 +4,24 @@
  * Searches Google Maps for each input query, scrolls the results feed to collect
  * place links, then visits every place detail page to extract business leads:
  * name, category, address, phone, website, rating, reviews, opening hours and
- * coordinates.
+ * coordinates. Direct place URLs are also accepted as input.
  *
  * Production hardening:
  *  - Apify Proxy (RESIDENTIAL group by default) with graceful fallbacks
- *  - Session pool; sessions are retired on CAPTCHA / block pages
+ *  - Session pool + retryOnBlocked; sessions retired on CAPTCHA / block pages
+ *  - Block screenshots and BLOCKED/METRICS diagnostics in the key-value store
  *  - Cookie-consent handling (EU exit IPs)
  *  - Randomized human-like pacing + low default concurrency
  *  - Stable `data-item-id` selectors on detail pages + card-based fallback
  *  - Per-query result budgets and automatic deduplication by place URL
- *  - Observability: live status messages + `status` field on every dataset item
+ *  - Pay-per-event hook: SCRAPE_RESULT charged for every `ok` lead
+ *  - Dataset + output schemas for Console views and AI-agent integration
  */
 import { Actor } from 'apify';
 import { PlaywrightCrawler, createPlaywrightRouter, log } from 'crawlee';
+import { normalizeMapsInput } from './input-normalizer.js';
 
-const DEFAULT_MAX_RESULTS = 50;
+const CHARGE_EVENT = 'SCRAPE_RESULT';
 const HARD_MAX_REQUESTS = 20000;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -26,29 +29,88 @@ const clamp = (n, lo, hi) => Math.min(hi, Math.max(lo, n));
 
 await Actor.init();
 
-const input = (await Actor.getInput()) ?? {};
+const input = normalizeMapsInput((await Actor.getInput()) ?? {});
 
-const searchStrings = (Array.isArray(input.searchStringsArray) ? input.searchStringsArray : [])
+const searchStrings = input.searchStringsArray
     .map((s) => String(s ?? '').trim())
     .filter(Boolean);
+const placeUrls = input.placeUrls;
 
-if (!searchStrings.length) {
-    await Actor.exit('Input is missing "searchStringsArray" - provide at least one search query, e.g. "Dentists in New York, NY".');
+if (!searchStrings.length && !placeUrls.length) {
+    await Actor.exit('Input is missing search queries ("searchStringsArray") and place URLs ("placeUrls"). Provide at least one, e.g. "Dentists in New York, NY".');
 }
 
-const maxResultsPerQuery = clamp(Math.floor(Number(input.maxResults)) || DEFAULT_MAX_RESULTS, 1, 1000);
-const language = String(input.language || 'en').slice(0, 12);
-const includePlaceDetails = input.includePlaceDetails !== false;
-const maxConcurrency = clamp(Math.floor(Number(input.maxConcurrency)) || 3, 1, 10);
+const maxResultsPerQuery = clamp(Math.floor(input.maxResults) || 50, 1, 1000);
+const language = input.language;
+const includePlaceDetails = input.includePlaceDetails;
+const maxConcurrency = clamp(Math.floor(input.maxConcurrency) || 3, 1, 10);
+
+/* ------------------------------------------------------------------ */
+/* Metrics & diagnostics                                               */
+/* ------------------------------------------------------------------ */
+const metrics = {
+    startedAt: new Date().toISOString(),
+    queries: searchStrings.length,
+    queriesProcessed: 0,
+    directPlaceUrls: placeUrls.length,
+    placesSaved: 0,
+    okCount: 0,
+    partialCount: 0,
+    noResultsCount: 0,
+    failedCount: 0,
+    captchaBlocks: 0,
+    chargedEvents: 0,
+    finishedAt: null,
+};
+const failedRequests = [];
+let blockShots = 0;
+
+async function saveBlockScreenshot(page, url) {
+    if (blockShots >= 3) return;
+    blockShots += 1;
+    try {
+        const buf = await page.screenshot({ type: 'png' });
+        await Actor.setValue(`BLOCKED_SCREENSHOT_${blockShots}`, buf, { contentType: 'image/png' });
+        log.warning(`CAPTCHA/block page detected for ${url} - screenshot saved as BLOCKED_SCREENSHOT_${blockShots}`);
+    } catch { /* best effort */ }
+}
+
+/** Push one dataset item first (data safety), then attempt the PPE charge for billable results. */
+async function pushItem(item) {
+    try {
+        await Actor.pushData(item);
+    } catch (err) {
+        log.error(`pushData rejected (dataset schema?): ${String(err?.message).slice(0, 300)}`);
+        metrics.failedCount += 1;
+        return;
+    }
+    if (item.status === 'ok') {
+        metrics.okCount += 1;
+        metrics.placesSaved += 1;
+        try {
+            const res = await Actor.charge({ eventName: CHARGE_EVENT });
+            if (res && typeof res.chargedCount === 'number') metrics.chargedEvents += res.chargedCount;
+        } catch (err) {
+            log.debug(`Charge skipped (${String(err?.message).slice(0, 120)})`);
+        }
+    } else if (item.status === 'partial') {
+        metrics.partialCount += 1;
+        metrics.placesSaved += 1;
+    }
+}
+
+async function updateStatus() {
+    await Actor.setStatusMessage(
+        `Saved ${metrics.placesSaved} place(s), ${metrics.failedCount} failed (${metrics.queriesProcessed}/${searchStrings.length} queries done)`,
+    ).catch(() => {});
+}
 
 /* ------------------------------------------------------------------ */
 /* Proxy: residential IPs are mandatory for Google Maps at scale.      */
 /* ------------------------------------------------------------------ */
 async function buildProxyConfiguration() {
-    const preferred = input.proxyConfiguration
-        ?? { useApifyProxy: true, apifyProxyGroups: ['RESIDENTIAL'] };
     try {
-        const cfg = await Actor.createProxyConfiguration(preferred);
+        const cfg = await Actor.createProxyConfiguration(input.proxyConfiguration);
         if (cfg) return cfg;
     } catch (err) {
         log.warning(`Preferred proxy configuration failed: ${err.message}`);
@@ -71,13 +133,6 @@ const proxyConfiguration = await buildProxyConfiguration();
 /* ------------------------------------------------------------------ */
 const seenUrls = new Set();
 const perQueryCount = new Map();
-let savedTotal = 0;
-
-async function updateStatus() {
-    await Actor.setStatusMessage(
-        `Saved ${savedTotal} place(s) so far (${perQueryCount.size}/${searchStrings.length} queries touched)`,
-    ).catch(() => {});
-}
 
 function parseCoordinates(url) {
     let m = String(url).match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
@@ -86,7 +141,7 @@ function parseCoordinates(url) {
 }
 
 /* ------------------------------------------------------------------ */
-/* Browser-side helpers (serialized into the page - no closures!)      */
+/* Page helpers                                                        */
 /* ------------------------------------------------------------------ */
 async function acceptConsentIfPresent(page) {
     try {
@@ -107,14 +162,19 @@ async function acceptConsentIfPresent(page) {
     return false;
 }
 
-function checkBlocked(page, session, requestUrl) {
+async function checkBlocked(page, session, requestUrl) {
     const url = page.url();
     if (url.includes('/sorry/') || url.includes('/sorryindex')) {
+        metrics.captchaBlocks += 1;
+        await saveBlockScreenshot(page, requestUrl);
         session?.retire();
         throw new Error(`Google CAPTCHA/block page served for ${requestUrl} - retiring session and retrying`);
     }
 }
 
+/* ------------------------------------------------------------------ */
+/* Browser-side extraction (serialized into the page - no closures!)   */
+/* ------------------------------------------------------------------ */
 const extractFeedCards = () => {
     const clean = (s) => { const t = s == null ? '' : String(s).replace(/\s+/g, ' ').trim(); return t || null; };
     const out = [];
@@ -133,9 +193,10 @@ const extractFeedCards = () => {
         let category = null;
         let address = null;
         if (rows.length) {
-            const first = rows[0].split('·').map((s) => s.trim()).filter(Boolean);
+            const meaningful = rows.filter((r) => !/^[\d.,\s]+\(?[\d.,\s]*\)?$/.test(r));
+            const first = (meaningful[0] || '').split('·').map((s) => s.trim()).filter(Boolean);
             category = first[0] || null;
-            address = first[1] || rows[1] || null;
+            address = first[1] || meaningful[1] || null;
         }
         const name = clean(a?.getAttribute('aria-label')) || clean(card.querySelector('.qBF1Pd')?.textContent);
         if (a?.href) out.push({ name, placeUrl: a.href, category, address, rating, reviewsCount });
@@ -197,41 +258,41 @@ const feedScrollState = () => {
 /* ------------------------------------------------------------------ */
 const router = createPlaywrightRouter();
 
-async function pushDirectPlace({ page, query, pushData, source }) {
+async function pushDetailItem({ page, pageUrl, query, card, source }) {
     await page.waitForSelector('h1', { timeout: 30000 }).catch(() => {});
     const d = await page.evaluate(extractPlaceDetails);
-    const { latitude, longitude } = parseCoordinates(page.url());
-    await pushData({
-        searchQuery: query,
-        status: d.name ? 'ok' : 'partial',
+    const { latitude, longitude } = parseCoordinates(pageUrl);
+    await pushItem({
+        searchQuery: query ?? null,
+        status: (d.name || card?.name) ? 'ok' : 'partial',
         source,
-        name: d.name,
-        category: d.category,
-        address: d.address,
-        phone: d.phone,
-        website: d.website,
-        rating: d.rating,
-        reviewsCount: d.reviewsCount,
-        openingHours: d.openingHours,
-        plusCode: d.plusCode,
+        name: d.name || card?.name || null,
+        category: d.category || card?.category || null,
+        address: d.address || card?.address || null,
+        phone: d.phone || null,
+        website: d.website || null,
+        rating: d.rating ?? card?.rating ?? null,
+        reviewsCount: d.reviewsCount ?? card?.reviewsCount ?? null,
+        openingHours: d.openingHours || null,
+        plusCode: d.plusCode || null,
         latitude,
         longitude,
-        placeUrl: page.url(),
+        placeUrl: pageUrl,
         scrapedAt: new Date().toISOString(),
     });
-    savedTotal += 1;
-    perQueryCount.set(query, (perQueryCount.get(query) ?? 0) + 1);
+    if (query) perQueryCount.set(query, (perQueryCount.get(query) ?? 0) + 1);
     await updateStatus();
 }
 
-async function handleFeed({ page, request, session, enqueueLinks, pushData, log: l }) {
+async function handleFeed({ page, request, session, enqueueLinks, log: l }) {
     const { query } = request.userData;
     await acceptConsentIfPresent(page);
-    checkBlocked(page, session, request.url);
+    await checkBlocked(page, session, request.url);
 
     // Single-result queries redirect straight to the place page
     if (page.url().includes('/maps/place/')) {
-        await pushDirectPlace({ page, query, pushData, source: 'direct-redirect' });
+        await pushDetailItem({ page, pageUrl: page.url(), query, card: null, source: 'direct-redirect' });
+        metrics.queriesProcessed += 1;
         return;
     }
 
@@ -245,9 +306,14 @@ async function handleFeed({ page, request, session, enqueueLinks, pushData, log:
     }, null, { timeout: 45000 }).catch(() => l.warning(`Timed out waiting for Google Maps results to render for "${query}".`));
 
     await acceptConsentIfPresent(page); // consent can appear after the first render
-    checkBlocked(page, session, request.url);
+    await checkBlocked(page, session, request.url);
+    if (page.url().includes('consent.google.com')) {
+        session?.retire();
+        throw new Error(`Stuck on the Google consent page for ${request.url} - retiring session and retrying`);
+    }
     if (page.url().includes('/maps/place/')) {
-        await pushDirectPlace({ page, query, pushData, source: 'direct-redirect' });
+        await pushDetailItem({ page, pageUrl: page.url(), query, card: null, source: 'direct-redirect' });
+        metrics.queriesProcessed += 1;
         return;
     }
 
@@ -276,11 +342,13 @@ async function handleFeed({ page, request, session, enqueueLinks, pushData, log:
     }
 
     const cards = await page.evaluate(extractFeedCards);
+    metrics.queriesProcessed += 1;
     if (!cards.length) {
         const pageTitle = await page.title().catch(() => null);
         const bodySnippet = await page.evaluate(() => ((document.body && document.body.innerText) || '').replace(/\s+/g, ' ').slice(0, 300)).catch(() => null);
         l.warning(`No places found for query "${query}" (page title: ${pageTitle}).`);
-        await pushData({ searchQuery: query, status: 'no-results', placeUrl: request.url, pageTitle, bodySnippet, scrapedAt: new Date().toISOString() });
+        metrics.noResultsCount += 1;
+        await pushItem({ searchQuery: query, status: 'no-results', placeUrl: request.url, pageTitle, bodySnippet, scrapedAt: new Date().toISOString() });
         return;
     }
 
@@ -296,6 +364,7 @@ async function handleFeed({ page, request, session, enqueueLinks, pushData, log:
         await enqueueLinks({
             urls: fresh.map((c) => c.placeUrl),
             label: 'DETAIL',
+            strategy: 'all', // detail URLs may redirect via consent.google.com - never skip on cross-host redirect
             transformRequestFunction: (req) => {
                 req.userData = { ...(req.userData ?? {}), query, card: cardByUrl.get(req.url) ?? null };
                 return req;
@@ -307,7 +376,7 @@ async function handleFeed({ page, request, session, enqueueLinks, pushData, log:
         // Feed-only mode: push what the result cards expose (no phone/website)
         for (const c of fresh) {
             const { latitude, longitude } = parseCoordinates(c.placeUrl);
-            await pushData({
+            await pushItem({
                 searchQuery: query,
                 status: c.name ? 'ok' : 'partial',
                 source: 'feed',
@@ -318,12 +387,13 @@ async function handleFeed({ page, request, session, enqueueLinks, pushData, log:
                 website: null,
                 rating: c.rating,
                 reviewsCount: c.reviewsCount,
+                openingHours: null,
+                plusCode: null,
                 latitude,
                 longitude,
                 placeUrl: c.placeUrl,
                 scrapedAt: new Date().toISOString(),
             });
-            savedTotal += 1;
             perQueryCount.set(query, (perQueryCount.get(query) ?? 0) + 1);
         }
         fresh.forEach((c) => seenUrls.add(c.placeUrl));
@@ -331,39 +401,20 @@ async function handleFeed({ page, request, session, enqueueLinks, pushData, log:
     }
 }
 
-async function handleDetail({ page, request, session, pushData, log: l }) {
+async function handleDetail({ page, request, session }) {
     await acceptConsentIfPresent(page);
-    checkBlocked(page, session, request.url);
-    await page.waitForSelector('h1', { timeout: 30000 }).catch(() => {});
-
-    const d = await page.evaluate(extractPlaceDetails);
-    const card = request.userData.card ?? {};
-    const { latitude, longitude } = parseCoordinates(request.url);
-    const query = request.userData.query ?? null;
-
-    const item = {
-        searchQuery: query,
-        status: d.name || card.name ? 'ok' : 'partial',
-        source: 'detail',
-        name: d.name || card.name || null,
-        category: d.category || card.category || null,
-        address: d.address || card.address || null,
-        phone: d.phone || null,
-        website: d.website || null,
-        rating: d.rating ?? card.rating ?? null,
-        reviewsCount: d.reviewsCount ?? card.reviewsCount ?? null,
-        openingHours: d.openingHours || null,
-        plusCode: d.plusCode || null,
-        latitude,
-        longitude,
-        placeUrl: request.url,
-        scrapedAt: new Date().toISOString(),
-    };
-    await pushData(item);
-    savedTotal += 1;
-    if (query) perQueryCount.set(query, (perQueryCount.get(query) ?? 0) + 1);
-    await updateStatus();
-    if (!item.name) l.warning(`Detail page yielded no name: ${request.url}`);
+    await checkBlocked(page, session, request.url);
+    if (page.url().includes('consent.google.com')) {
+        session?.retire();
+        throw new Error(`Stuck on the Google consent page for ${request.url} - retiring session and retrying`);
+    }
+    await pushDetailItem({
+        page,
+        pageUrl: request.url,
+        query: request.userData.query ?? null,
+        card: request.userData.card ?? null,
+        source: request.userData.query ? 'detail' : 'direct-url',
+    });
 }
 
 router.addDefaultHandler((ctx) => handleFeed(ctx));
@@ -378,7 +429,7 @@ const crawler = new PlaywrightCrawler({
     requestHandler: router,
     maxConcurrency,
     maxRequestRetries: 4,
-    maxRequestsPerCrawl: Math.min(HARD_MAX_REQUESTS, searchStrings.length * (maxResultsPerQuery + 1) + 10),
+    maxRequestsPerCrawl: Math.min(HARD_MAX_REQUESTS, searchStrings.length * (maxResultsPerQuery + 1) + placeUrls.length + 10),
     navigationTimeoutSecs: 90,
     requestHandlerTimeoutSecs: 400, // feed scrolling can legitimately take minutes
     useSessionPool: true,
@@ -386,6 +437,7 @@ const crawler = new PlaywrightCrawler({
         maxPoolSize: Math.max(5, maxConcurrency * 3),
         sessionOptions: { maxErrorScore: 3 },
     },
+    retryOnBlocked: true,
     browserPoolOptions: { useFingerprints: true },
     preNavigationHooks: [
         async ({ page }, gotoOptions) => {
@@ -396,33 +448,51 @@ const crawler = new PlaywrightCrawler({
     ],
     failedRequestHandler: async ({ request, log: l }, error) => {
         l.error(`Request failed after all retries: ${request.url} - ${error?.message}`);
-        await Actor.pushData({
+        metrics.failedCount += 1;
+        failedRequests.push({ url: request.url, query: request.userData?.query ?? null, error: String(error?.message ?? error).slice(0, 300) });
+        await pushItem({
             searchQuery: request.userData?.query ?? null,
             status: 'failed',
             placeUrl: request.url,
             error: String(error?.message ?? error).slice(0, 500),
             scrapedAt: new Date().toISOString(),
-        }).catch(() => {});
+        });
     },
 });
 
-const requests = searchStrings.map((query) => ({
-    url: `https://www.google.com/maps/search/${encodeURIComponent(query)}?hl=${encodeURIComponent(language)}`,
-    label: 'FEED',
-    userData: { query },
-}));
+const requests = [
+    ...searchStrings.map((query) => ({
+        url: `https://www.google.com/maps/search/${encodeURIComponent(query)}?hl=${encodeURIComponent(language)}`,
+        label: 'FEED',
+        userData: { query },
+    })),
+    ...placeUrls.map((placeUrl) => ({
+        url: placeUrl,
+        label: 'DETAIL',
+        userData: { query: null, card: null },
+    })),
+];
 
 log.info(
-    `Google Maps Leads Searcher starting: ${searchStrings.length} query(ies), up to ${maxResultsPerQuery} results each, `
-    + `details=${includePlaceDetails}, concurrency=${maxConcurrency}, proxy=${proxyConfiguration ? 'Apify Proxy' : 'direct'}`,
+    `Google Maps Leads Searcher starting: ${searchStrings.length} query(ies), ${placeUrls.length} direct place URL(s), `
+    + `up to ${maxResultsPerQuery} results per query, details=${includePlaceDetails}, concurrency=${maxConcurrency}, `
+    + `proxy=${proxyConfiguration ? 'Apify Proxy' : 'direct'}`,
 );
 
 try {
     await Actor.setStatusMessage('Crawling Google Maps...');
     await crawler.run(requests);
-    await Actor.setStatusMessage(`Finished: ${savedTotal} place(s) saved to the dataset.`, { level: 'SUCCESS' });
+    metrics.finishedAt = new Date().toISOString();
+    await Actor.setValue('METRICS', metrics);
+    if (failedRequests.length) await Actor.setValue('FAILED_REQUESTS', failedRequests);
+    await Actor.setStatusMessage(
+        `Finished: ${metrics.placesSaved} place(s) saved (${metrics.okCount} ok, ${metrics.partialCount} partial), ${metrics.failedCount} failed.`,
+        { level: 'SUCCESS' },
+    );
     await Actor.exit();
 } catch (err) {
     log.exception(err, 'Actor run failed');
+    metrics.finishedAt = new Date().toISOString();
+    await Actor.setValue('METRICS', metrics).catch(() => {});
     await Actor.fail(`Run failed: ${err.message}`);
 }

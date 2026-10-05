@@ -7,7 +7,7 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
-    "apify": "^3.2.0",
+    "apify": "^3.5.0",
     "crawlee": "^3.9.0",
     "playwright": "*"
   },

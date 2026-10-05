@@ -1,59 +1,69 @@
 {
-  "title": "Google Maps Leads Searcher Input",
+  "title": "Google Maps Leads Searcher",
   "type": "object",
   "schemaVersion": 1,
   "properties": {
     "searchStringsArray": {
-      "title": "Search Queries",
+      "title": "Search queries",
       "type": "array",
-      "description": "Business searches to run on Google Maps. Include a location in each query for best results. Google Maps caps a single query at ~120 results - use several narrower queries for wider coverage.",
+      "description": "One business search per line, ideally in 'keyword in city' format (e.g. 'dentists in Austin TX'). Each query is scraped independently. Google Maps caps one query at ~120 results - split large areas into narrower queries. Aliases accepted via API: searchQueries, queries.",
       "editor": "stringList",
       "prefill": [
         "Dentists in New York, NY",
         "Italian restaurants in Brooklyn, NY"
       ]
     },
+    "placeUrls": {
+      "title": "Direct place URLs (optional)",
+      "type": "array",
+      "description": "Google Maps place URLs to scrape directly, skipping the search step. Useful for re-runs of failed leads.",
+      "editor": "stringList",
+      "prefill": []
+    },
     "maxResults": {
-      "title": "Max Results per Query",
+      "title": "Max results per query",
       "type": "integer",
-      "description": "Maximum number of places to scrape per search query.",
+      "description": "Maximum number of places to scrape per search query (Google hard-caps a single query at ~120). Aliases: maxPlacesPerQuery, maxCrawledPlacesPerSearch.",
       "default": 50,
+      "minimum": 1,
       "maximum": 1000
+    },
+    "includePlaceDetails": {
+      "title": "Open each place (phone, website, hours)",
+      "type": "boolean",
+      "description": "Visit every place's detail page to extract phone, website and opening hours. Disable for a 3-5x faster, cheaper run with feed data only. Alias: scrapeDetails.",
+      "default": true,
+      "sectionCaption": "Extraction & performance",
+      "sectionDescription": "Control what is scraped and how fast."
+    },
+    "maxConcurrency": {
+      "title": "Max concurrency",
+      "type": "integer",
+      "description": "Parallel browser pages. Keep low (1-5) to avoid blocks; higher values increase proxy usage without proportional speedup.",
+      "default": 3,
+      "minimum": 1,
+      "maximum": 10
     },
     "language": {
       "title": "Language",
       "type": "string",
-      "description": "Google Maps interface language code (hl parameter).",
-      "default": "en",
-      "editor": "textfield"
-    },
-    "includePlaceDetails": {
-      "title": "Open Place Detail Pages",
-      "type": "boolean",
-      "description": "Visit each place's detail page to extract phone, website and opening hours. Disable for a faster, lighter run (feed data only).",
-      "default": true
-    },
-    "maxConcurrency": {
-      "title": "Max Concurrency",
-      "type": "integer",
-      "description": "Parallel browser pages. Keep low (1-5) to avoid blocks.",
-      "default": 3,
-      "maximum": 10
+      "description": "Google Maps interface language code (hl parameter), e.g. 'en', 'de', 'es'.",
+      "editor": "textfield",
+      "default": "en"
     },
     "proxyConfiguration": {
-      "title": "Proxy Configuration",
+      "title": "Proxy configuration",
       "type": "object",
-      "description": "Residential proxies are strongly recommended - datacenter IPs are blocked by Google Maps almost instantly.",
+      "description": "RESIDENTIAL proxies are strongly recommended - Google blocks datacenter IPs almost instantly. Consider setting a proxy country matching the searched location.",
       "prefill": {
         "useApifyProxy": true,
         "apifyProxyGroups": [
           "RESIDENTIAL"
         ]
       },
-      "editor": "proxy"
+      "editor": "proxy",
+      "sectionCaption": "Proxy",
+      "sectionDescription": "Anti-blocking configuration."
     }
-  },
-  "required": [
-    "searchStringsArray"
-  ]
+  }
 }

@@ -2,7 +2,13 @@
   "actorSpecification": 1,
   "name": "email-extractor",
   "title": "Business Email Extractor",
-  "description": "Crawls target domains to discover business emails, including JavaScript-rendered and obfuscated addresses, with deduplication.",
+  "description": "Crawl websites and extract business emails - including JavaScript-rendered, HTML-entity encoded (&#64;) and obfuscated ('user [at] domain [dot] com') addresses. Depth-aware crawling with contact-page prioritization, deduplication, confidence scoring and pay-per-email pricing.",
   "version": "1.0",
-  "buildTag": "latest"
+  "buildTag": "latest",
+  "minMemoryMbytes": 1024,
+  "maxMemoryMbytes": 4096,
+  "output": "./output_schema.json",
+  "storages": {
+    "dataset": "./dataset_schema.json"
+  }
 }

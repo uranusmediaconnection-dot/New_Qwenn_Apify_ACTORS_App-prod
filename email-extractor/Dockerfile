@@ -1,5 +1,5 @@
 # Based on the official Apify Node.js + Playwright + Chrome actor template
-FROM apify/actor-node-playwright-chrome:18
+FROM apify/actor-node-playwright-chrome:20
 
 # Copy just package*.json first to benefit from Docker layer caching
 COPY package*.json ./

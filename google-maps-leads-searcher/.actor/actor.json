@@ -2,7 +2,13 @@
   "actorSpecification": 1,
   "name": "google-maps-leads-searcher",
   "title": "Google Maps Leads Searcher",
-  "description": "Searches Google Maps and extracts business leads: name, category, address, phone, website, rating, reviews and coordinates. Playwright + residential proxies, session rotation, consent handling and human-like pacing.",
+  "description": "Extract business leads from Google Maps: names, categories, addresses, phones, websites, ratings, reviews, opening hours and coordinates. Residential proxies, CAPTCHA session rotation, consent handling and pay-per-result pricing.",
   "version": "1.0",
-  "buildTag": "latest"
+  "buildTag": "latest",
+  "minMemoryMbytes": 1024,
+  "maxMemoryMbytes": 4096,
+  "output": "./output_schema.json",
+  "storages": {
+    "dataset": "./dataset_schema.json"
+  }
 }

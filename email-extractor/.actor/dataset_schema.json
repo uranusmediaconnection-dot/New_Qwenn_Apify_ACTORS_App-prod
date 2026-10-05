@@ -1,0 +1,86 @@
+{
+  "actorSpecification": 1,
+  "fields": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "description": "A unique business email discovered on a crawled page.",
+    "properties": {
+      "email": {
+        "type": "string",
+        "title": "Email",
+        "example": "sales@acme.com"
+      },
+      "domain": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "title": "Email domain",
+        "example": "acme.com"
+      },
+      "sourceUrl": {
+        "type": "string",
+        "title": "Found on page"
+      },
+      "depth": {
+        "type": [
+          "integer",
+          "null"
+        ],
+        "title": "Crawl depth",
+        "description": "0 = start URL, 1 = first-level link, ..."
+      },
+      "confidence": {
+        "type": [
+          "number",
+          "null"
+        ],
+        "title": "Confidence",
+        "description": "1.0 = mailto link, 0.8 = plain visible text, 0.6 = recovered from obfuscation/encoding"
+      },
+      "scrapedAt": {
+        "type": "string",
+        "title": "Scraped at",
+        "description": "ISO-8601 timestamp"
+      }
+    },
+    "required": [
+      "email",
+      "sourceUrl",
+      "scrapedAt"
+    ],
+    "additionalProperties": true
+  },
+  "views": {
+    "emails": {
+      "title": "Emails",
+      "description": "Unique business emails found",
+      "transformation": {
+        "fields": [
+          "email",
+          "domain",
+          "confidence",
+          "depth",
+          "sourceUrl"
+        ]
+      },
+      "display": {
+        "component": "table",
+        "properties": {
+          "email": {
+            "label": "Email",
+            "format": "text"
+          },
+          "confidence": {
+            "label": "Confidence",
+            "format": "number"
+          },
+          "sourceUrl": {
+            "label": "Found on",
+            "format": "link"
+          }
+        }
+      }
+    }
+  }
+}

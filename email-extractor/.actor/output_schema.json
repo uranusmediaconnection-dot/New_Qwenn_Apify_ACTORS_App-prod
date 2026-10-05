@@ -1,0 +1,19 @@
+{
+  "actorOutputSchemaVersion": 1,
+  "title": "Business Email Extractor output",
+  "description": "Unique emails in the default dataset and run metrics in the key-value store.",
+  "properties": {
+    "emails": {
+      "type": "string",
+      "title": "Emails",
+      "description": "Unique business emails with domain, confidence and source page.",
+      "template": "{{links.apiDefaultDatasetUrl}}/items?view=emails"
+    },
+    "metrics": {
+      "type": "string",
+      "title": "Run metrics",
+      "description": "Pages crawled, emails found, charged events.",
+      "template": "{{links.apiDefaultKeyValueStoreUrl}}/records/METRICS"
+    }
+  }
+}
