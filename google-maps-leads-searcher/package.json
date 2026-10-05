@@ -1,8 +1,8 @@
 {
-  "name": "google-maps-scraper",
+  "name": "google-maps-leads-searcher",
   "version": "1.0.0",
   "type": "module",
-  "description": "Apify Actor: Google Maps Scraper",
+  "description": "Apify Actor: Google Maps Leads Searcher",
   "engines": {
     "node": ">=18.0.0"
   },

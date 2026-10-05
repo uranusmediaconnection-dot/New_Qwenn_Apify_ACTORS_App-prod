@@ -1,0 +1,8 @@
+{
+  "actorSpecification": 1,
+  "name": "google-maps-leads-searcher",
+  "title": "Google Maps Leads Searcher",
+  "description": "Searches Google Maps and extracts business leads: name, category, address, phone, website, rating, reviews and coordinates. Playwright + residential proxies, session rotation, consent handling and human-like pacing.",
+  "version": "1.0",
+  "buildTag": "latest"
+}

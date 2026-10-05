@@ -1,0 +1,8 @@
+{
+  "actorSpecification": 1,
+  "name": "linkedin-leads-collector",
+  "title": "LinkedIn Leads Collector",
+  "description": "Collects lead data from public LinkedIn profile and company pages (JSON-LD, OpenGraph and DOM extraction layers). No login required. Residential proxies, session rotation and auth-wall detection with retries.",
+  "version": "1.0",
+  "buildTag": "latest"
+}

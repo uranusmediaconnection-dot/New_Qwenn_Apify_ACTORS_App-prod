@@ -11,7 +11,7 @@ jobs:
       fail-fast: false
       matrix:
         # Each actor lives in its own top-level folder
-        actor: [google-maps-scraper, linkedin-scraper, email-extractor]
+        actor: [google-maps-leads-searcher, linkedin-leads-collector, email-extractor]
     steps:
       - uses: actions/checkout@v4
       - name: Setup Node.js

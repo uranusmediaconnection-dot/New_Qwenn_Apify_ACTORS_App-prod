@@ -9,7 +9,7 @@ independently.
 
 ```
 .
-├── google-maps-scraper/        # Actor 1 — Google Maps business listings
+├── google-maps-leads-searcher/ # Actor 1 — "Google Maps Leads Searcher"
 │   ├── .actor/
 │   │   ├── actor.json          # Actor metadata (spec v1, version MAJOR.MINOR)
 │   │   ├── input_schema.json   # Input UI/validation for the Apify console
@@ -17,8 +17,8 @@ independently.
 │   ├── src/main.js             # Crawler logic (PlaywrightCrawler)
 │   ├── Dockerfile              # apify/actor-node-playwright-chrome:18
 │   └── package.json
-├── linkedin-scraper/           # Actor 2 — public LinkedIn profiles/companies (same layout)
-├── email-extractor/            # Actor 3 — domain crawl for business emails (same layout)
+├── linkedin-leads-collector/   # Actor 2 — "LinkedIn Leads Collector" (same layout)
+├── email-extractor/            # Actor 3 — business email extractor (same layout)
 ├── docs/
 │   └── research-report.md      # Full implementation research & design documentation
 ├── scripts/
@@ -28,10 +28,10 @@ independently.
 
 ## Actors
 
-| Folder | Actor | What it does |
+| Folder | Apify Actor | What it does |
 | :--- | :--- | :--- |
-| `google-maps-scraper/` | Google Maps Scraper | Playwright + residential proxies + auto-scroll to extract business listings (name, category, address, website) |
-| `linkedin-scraper/` | LinkedIn Lead Scraper | Public-profile extraction via JSON-LD with stealth settings (name, headline, location) — no login required |
+| `google-maps-leads-searcher/` | **Google Maps Leads Searcher** ([console](https://console.apify.com/actors/Z8cXZbclb7QT7VzpT)) | Feed scrolling + place detail pages → name, category, address, phone, website, rating, reviews, hours, coordinates. Consent handling, CAPTCHA session rotation, per-query budgets |
+| `linkedin-leads-collector/` | **LinkedIn Leads Collector** ([console](https://console.apify.com/actors/GXqLkazwz2AZIEBw0)) | Public profiles/companies via 3 extraction layers (JSON-LD → OpenGraph → DOM). Auth-wall detection + retry on fresh IPs, per-URL status reporting |
 | `email-extractor/` | Email Extractor | Same-origin domain crawl that renders JS to find dynamic/obfuscated business emails, deduplicated |
 
 ## Prerequisites
@@ -45,7 +45,7 @@ independently.
 Each actor folder is a self-contained Apify project:
 
 ```bash
-cd google-maps-scraper     # or linkedin-scraper / email-extractor
+cd google-maps-leads-searcher   # or linkedin-leads-collector / email-extractor
 apify login                # one-time (or export APIFY_TOKEN=...)
 apify run                  # runs locally against ./storage
 ```
@@ -69,8 +69,8 @@ Sample input goes in `storage/key_value_stores/default/INPUT.json`, e.g.:
 ### Option B — Manual push
 
 ```bash
-cd linkedin-scraper && apify push
-cd ../google-maps-scraper && apify push
+cd linkedin-leads-collector && apify push
+cd ../google-maps-leads-searcher && apify push
 cd ../email-extractor && apify push
 ```
 
@@ -78,7 +78,7 @@ cd ../email-extractor && apify push
 
 1. Apify Console → **Actors → My Actors → Create new → Source: GitHub Repository**.
 2. Connect your GitHub account and select `New_Qwenn_Apify_ACTORS_App-prod`.
-3. Set the actor's source directory to its folder (e.g. `google-maps-scraper`).
+3. Set the actor's source directory to its folder (e.g. `google-maps-leads-searcher`).
 4. Builds then trigger automatically on every push.
 
 ## Operational Notes
@@ -90,6 +90,8 @@ cd ../email-extractor && apify push
 - **LinkedIn scope**: public pages only (`/in/...`, `/company/...`). Authenticated
   surfaces (people search, employee lists) are intentionally not scraped — they carry a
   high risk of account restriction.
-- **Pipeline**: run `google-maps-scraper` → collect `website` values → feed them to
-  `email-extractor` as `startUrls` for an end-to-end lead list.
+- **Pipeline**: run `google-maps-leads-searcher` → collect `website` values → feed them
+  to `email-extractor` as `startUrls` for an end-to-end lead list.
+- **Status fields**: every dataset item carries a `status` (`ok` / `partial` / `blocked`
+  / `failed` / `no-results`) so incomplete scrapes are visible instead of silently lost.
 - Full design rationale, anti-bot analysis, and alternatives: [`docs/research-report.md`](docs/research-report.md).

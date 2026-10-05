@@ -1,0 +1,45 @@
+{
+  "title": "LinkedIn Leads Collector Input",
+  "type": "object",
+  "schemaVersion": 1,
+  "properties": {
+    "urls": {
+      "title": "LinkedIn URLs",
+      "type": "array",
+      "description": "Public LinkedIn profile (/in/...) or company (/company/...) URLs. Authenticated surfaces (people search, employee lists) are not supported - public pages only.",
+      "editor": "stringList",
+      "prefill": [
+        "https://www.linkedin.com/in/williamhgates/",
+        "https://www.linkedin.com/company/microsoft/"
+      ]
+    },
+    "maxConcurrency": {
+      "title": "Max Concurrency",
+      "type": "integer",
+      "description": "Parallel pages. LinkedIn is very sensitive - keep at 1-2.",
+      "default": 1,
+      "maximum": 5
+    },
+    "includeRawText": {
+      "title": "Include Raw Text Snippet",
+      "type": "boolean",
+      "description": "Add a 1000-character raw text snippet of the page to each dataset item (useful for custom enrichment).",
+      "default": false
+    },
+    "proxyConfiguration": {
+      "title": "Proxy Configuration",
+      "type": "object",
+      "description": "Residential proxies are strongly recommended for LinkedIn.",
+      "prefill": {
+        "useApifyProxy": true,
+        "apifyProxyGroups": [
+          "RESIDENTIAL"
+        ]
+      },
+      "editor": "proxy"
+    }
+  },
+  "required": [
+    "urls"
+  ]
+}

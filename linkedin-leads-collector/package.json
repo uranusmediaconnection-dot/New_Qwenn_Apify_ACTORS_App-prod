@@ -1,8 +1,8 @@
 {
-  "name": "linkedin-scraper",
+  "name": "linkedin-leads-collector",
   "version": "1.0.0",
   "type": "module",
-  "description": "Apify Actor: LinkedIn Lead Scraper (Public Profiles)",
+  "description": "Apify Actor: LinkedIn Leads Collector",
   "engines": {
     "node": ">=18.0.0"
   },
