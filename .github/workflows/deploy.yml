@@ -17,12 +17,14 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
       - name: Install Apify CLI
         run: npm install -g apify-cli
-      - name: Deploy Actor
+      - name: Authenticate Apify CLI
         env:
-          # apify-cli authenticates natively via the APIFY_TOKEN environment variable
           APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
-        run: apify push
+        run: apify login --token "$APIFY_TOKEN"
+      - name: Deploy Actor
+        # -f: repo is the source of truth in CI (push even if platform copy looks newer)
+        run: apify push -f
         working-directory: ${{ matrix.actor }}
