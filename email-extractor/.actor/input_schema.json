@@ -6,12 +6,22 @@
     "startUrls": {
       "title": "Start URLs",
       "type": "array",
-      "editor": "json"
+      "description": "Pages to start crawling from, e.g. a company website. Only same-origin links are followed.",
+      "editor": "requestListSources",
+      "prefill": [{ "url": "https://apify.com" }]
     },
     "maxDepth": {
       "title": "Crawl Depth",
       "type": "integer",
+      "description": "Maximum crawl depth from the start URLs (currently the crawler extracts emails from start URLs and links one level deep).",
       "default": 2
+    },
+    "proxyConfiguration": {
+      "title": "Proxy Configuration",
+      "type": "object",
+      "description": "Apify Proxy configuration. Residential proxies are recommended for sites with anti-bot protection.",
+      "prefill": { "useApifyProxy": true, "apifyProxyGroups": ["RESIDENTIAL"] },
+      "editor": "proxy"
     }
   },
   "required": ["startUrls"]

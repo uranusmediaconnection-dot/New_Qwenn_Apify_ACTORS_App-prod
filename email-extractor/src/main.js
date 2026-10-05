@@ -3,7 +3,7 @@ import { PlaywrightCrawler, createPlaywrightRouter } from 'crawlee';
 
 await Actor.init();
 const input = await Actor.getInput();
-const proxyConfiguration = await Actor.createProxyConfiguration({ groups: ['RESIDENTIAL'] });
+const proxyConfiguration = await Actor.createProxyConfiguration(input.proxyConfiguration ?? { useApifyProxy: true, apifyProxyGroups: ['RESIDENTIAL'] });
 const foundEmails = new Set();
 
 const router = createPlaywrightRouter();
