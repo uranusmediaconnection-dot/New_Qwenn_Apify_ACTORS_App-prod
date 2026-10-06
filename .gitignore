@@ -1,14 +1,1 @@
-# Dependencies
-node_modules/
-
-# Apify local storage (created by `apify run`)
-storage/
-apify_storage/
-crawlee_storage/
-
-# Env & secrets
-.env
-*.pem
-
-# OS / editor
-.DS_Store
+(empty)

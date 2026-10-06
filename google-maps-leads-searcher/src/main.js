@@ -14,14 +14,18 @@
  *  - Randomized human-like pacing + low default concurrency
  *  - Stable `data-item-id` selectors on detail pages + card-based fallback
  *  - Per-query result budgets and automatic deduplication by place URL
- *  - Pay-per-event hook: SCRAPE_RESULT charged for every `ok` lead
+ *  - Pay-per-event hook: RESULT charged for every `ok` lead ($0.0025 = $2.50/1k)
  *  - Dataset + output schemas for Console views and AI-agent integration
  */
+import os from 'node:os';
 import { Actor } from 'apify';
 import { PlaywrightCrawler, createPlaywrightRouter, log } from 'crawlee';
 import { normalizeMapsInput } from './input-normalizer.js';
 
-const CHARGE_EVENT = 'SCRAPE_RESULT';
+// Must match the PPE event name configured in Apify Console -> Publishing ->
+// Monetization (Pay per event). Renamed from SCRAPE_RESULT to RESULT so it
+// follows the Apify pay-per-result convention; override via APIFY_CHARGE_EVENT.
+const CHARGE_EVENT = process.env.APIFY_CHARGE_EVENT || 'RESULT';
 const HARD_MAX_REQUESTS = 20000;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -127,6 +131,26 @@ async function buildProxyConfiguration() {
 }
 
 const proxyConfiguration = await buildProxyConfiguration();
+
+/* ------------------------------------------------------------------ */
+/* Memory guard: Google Maps tabs are heavy (~300 MB each). Running    */
+/* more concurrent pages than the container RAM supports gets the run  */
+/* aborted by the OOM killer ("actor stopped"), so cap concurrency to   */
+/* what fits in memory. Prefer the Apify-assigned memory               */
+/* (MEMORY_MBYTES / APIFY_MEMORY_MBYTES) over host free memory, which  */
+/* is unreliable inside containers.                                    */
+/* ------------------------------------------------------------------ */
+const MEMORY_PER_TAB_MB = 350; // conservative estimate incl. browser pool overhead
+const MEMORY_BASELINE_MB = 250; // node + crawlee baseline before opening tabs
+const assignedMb = parseInt(process.env.MEMORY_MBYTES ?? process.env.APIFY_MEMORY_MBYTES ?? '', 10);
+const availableMb = Number.isFinite(assignedMb) && assignedMb > 0
+    ? assignedMb
+    : Math.min(os.freemem() / 1024 / 1024, os.totalmem() / 1024 / 1024);
+const maxConcurrencyByMemory = Math.max(1, Math.floor((availableMb - MEMORY_BASELINE_MB) / MEMORY_PER_TAB_MB));
+const effectiveConcurrency = clamp(Math.min(maxConcurrency, maxConcurrencyByMemory), 1, 10);
+if (effectiveConcurrency < maxConcurrency) {
+    log.warning(`Limiting concurrency ${maxConcurrency} -> ${effectiveConcurrency}: only ~${Math.round(availableMb)} MB of memory available (OOM protection). Increase actor memory or lower "maxConcurrency".`);
+}
 
 /* ------------------------------------------------------------------ */
 /* Run state                                                           */
@@ -438,14 +462,14 @@ router.addHandler('DETAIL', (ctx) => handleDetail(ctx));
 const crawler = new PlaywrightCrawler({
     proxyConfiguration,
     requestHandler: router,
-    maxConcurrency,
+    maxConcurrency: effectiveConcurrency,
     maxRequestRetries: 4,
     maxRequestsPerCrawl: Math.min(HARD_MAX_REQUESTS, searchStrings.length * (maxResultsPerQuery + 1) + placeUrls.length + 10),
     navigationTimeoutSecs: 90,
     requestHandlerTimeoutSecs: 400, // feed scrolling can legitimately take minutes
     useSessionPool: true,
     sessionPoolOptions: {
-        maxPoolSize: Math.max(5, maxConcurrency * 3),
+        maxPoolSize: Math.max(5, effectiveConcurrency * 3),
         sessionOptions: { maxErrorScore: 3 },
     },
     retryOnBlocked: true,
@@ -455,6 +479,17 @@ const crawler = new PlaywrightCrawler({
             gotoOptions.waitUntil = 'domcontentloaded';
             await sleep(800 + Math.random() * 2200); // human-like pacing
             await page.setExtraHTTPHeaders({ 'Accept-Language': `${language},en;q=0.9` }).catch(() => {});
+        },
+    ],
+    postNavigationHooks: [
+        async ({ page }) => {
+            // Reap orphaned Google Maps popups ("Open in Maps" button opens a
+            // second full page load per detail visit). Left open, they leak
+            // ~300 MB each and get the run killed by the OOM killer.
+            const extraPages = page.context().pages().filter((p) => p !== page);
+            for (const p of extraPages) {
+                try { await p.close(); } catch { /* already closed */ }
+            }
         },
     ],
     failedRequestHandler: async ({ request, log: l }, error) => {
@@ -486,7 +521,8 @@ const requests = [
 
 log.info(
     `Google Maps Leads Searcher starting: ${searchStrings.length} query(ies), ${placeUrls.length} direct place URL(s), `
-    + `up to ${maxResultsPerQuery} results per query, details=${includePlaceDetails}, concurrency=${maxConcurrency}, `
+    + `up to ${maxResultsPerQuery} results per query, details=${includePlaceDetails}, concurrency=${effectiveConcurrency}`
+    + `${effectiveConcurrency < maxConcurrency ? ` (capped from ${maxConcurrency} by available memory)` : ''}, `
     + `proxy=${proxyConfiguration ? 'Apify Proxy' : 'direct'}`,
 );
 

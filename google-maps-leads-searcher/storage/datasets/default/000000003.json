@@ -1,0 +1,19 @@
+{
+	"searchQuery": "Coffee shops in Brooklyn, NY",
+	"status": "ok",
+	"source": "detail",
+	"placeId": "ChIJfSF73pFdwokRCYoD0KuPKUY",
+	"name": "Passionfruit Coffee",
+	"category": "Coffee shop",
+	"address": "733 Madison St, Brooklyn, NY 11221, United States",
+	"phone": "+13472210185",
+	"website": "http://passionfruitcoffee.com/",
+	"rating": 4.9,
+	"reviewsCount": 49,
+	"openingHours": null,
+	"plusCode": "Plus code: M3QF+23 Brooklyn, New York, USA",
+	"latitude": 40.6875194,
+	"longitude": -73.9273596,
+	"placeUrl": "https://www.google.com/maps/place/Passionfruit+Coffee/data=!4m7!3m6!1s0x89c25d91de7b217d:0x46298fabd0038a09!8m2!3d40.6875194!4d-73.9273596!16s%2Fg%2F11tt0prhht!19sChIJfSF73pFdwokRCYoD0KuPKUY?authuser=0&hl=en&g_ep=EgoyMDI2MDkzMC4wIJJjKgBIAVAD&rclk=1",
+	"scrapedAt": "2026-10-05T09:09:39.925Z"
+}

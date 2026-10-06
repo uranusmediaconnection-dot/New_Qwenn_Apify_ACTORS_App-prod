@@ -1,0 +1,9 @@
+{
+	"id": "L6coZ49BaS5gwTg",
+	"json": "{\"id\":\"L6coZ49BaS5gwTg\",\"url\":\"https://www.google.com/maps/search/Coffee%20shops%20in%20Brooklyn%2C%20NY?hl=en\",\"loadedUrl\":\"https://www.google.com/maps/search/Coffee%20shops%20in%20Brooklyn%2C%20NY?hl=en\",\"uniqueKey\":\"https://www.google.com/maps/search/Coffee%20shops%20in%20Brooklyn%2C%20NY?hl=en\",\"method\":\"GET\",\"noRetry\":false,\"retryCount\":0,\"errorMessages\":[],\"headers\":{},\"userData\":{\"query\":\"Coffee shops in Brooklyn, NY\",\"label\":\"FEED\",\"__crawlee\":{\"state\":4}},\"handledAt\":\"2026-10-05T09:09:20.239Z\"}",
+	"method": "GET",
+	"orderNo": null,
+	"retryCount": 0,
+	"uniqueKey": "https://www.google.com/maps/search/Coffee%20shops%20in%20Brooklyn%2C%20NY?hl=en",
+	"url": "https://www.google.com/maps/search/Coffee%20shops%20in%20Brooklyn%2C%20NY?hl=en"
+}

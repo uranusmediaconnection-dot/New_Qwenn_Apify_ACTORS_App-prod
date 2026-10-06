@@ -1,0 +1,19 @@
+{
+	"searchQuery": "Dentists in New York, NY",
+	"status": "ok",
+	"source": "detail",
+	"placeId": "ChIJXWJBLplgwokRhg6MT7pIRbo",
+	"name": "Prabha Krishnan, DDS, PC",
+	"category": "Periodontist",
+	"address": "110-45 Queens Blvd Ste 108, Forest Hills, NY 11375, United States",
+	"phone": "+17182685777",
+	"website": "http://www.yourgumspecialist.com/",
+	"rating": 4.5,
+	"reviewsCount": 45,
+	"openingHours": null,
+	"plusCode": "Plus code: P596+VF Forest Hills, Queens, NY, USA",
+	"latitude": 40.719715,
+	"longitude": -73.838763,
+	"placeUrl": "https://www.google.com/maps/place/Prabha+Krishnan,+DDS,+PC/data=!4m7!3m6!1s0x89c260992e41625d:0xba4548ba4f8c0e86!8m2!3d40.719715!4d-73.838763!16s%2Fg%2F1v9gwd26!19sChIJXWJBLplgwokRhg6MT7pIRbo?authuser=0&hl=en&g_ep=EgoyMDI2MDkzMC4wIJJjKgBIAVAD&rclk=1",
+	"scrapedAt": "2026-10-05T09:09:44.720Z"
+}

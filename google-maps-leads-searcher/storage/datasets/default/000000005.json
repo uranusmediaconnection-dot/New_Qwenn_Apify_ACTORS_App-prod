@@ -1,0 +1,19 @@
+{
+	"searchQuery": "Dentists in New York, NY",
+	"status": "ok",
+	"source": "detail",
+	"placeId": "ChIJkyPq7mtbwokRbAzdra8JR04",
+	"name": "Wally Health",
+	"category": "Dentist",
+	"address": "249 Church St, New York, NY 10013, United States",
+	"phone": "+18339292559",
+	"website": "https://www.carebywally.com/",
+	"rating": 4.7,
+	"reviewsCount": 47,
+	"openingHours": null,
+	"plusCode": "Plus code: PX9V+4Q New York, USA",
+	"latitude": 40.717784,
+	"longitude": -74.005508,
+	"placeUrl": "https://www.google.com/maps/place/Wally+Health/data=!4m7!3m6!1s0x89c25b6beeea2393:0x4e4709afaddd0c6c!8m2!3d40.717784!4d-74.005508!16s%2Fg%2F11k47yjh0_!19sChIJkyPq7mtbwokRbAzdra8JR04?authuser=0&hl=en&g_ep=EgoyMDI2MDkzMC4wIJJjKgBIAVAD&rclk=1",
+	"scrapedAt": "2026-10-05T09:09:49.118Z"
+}

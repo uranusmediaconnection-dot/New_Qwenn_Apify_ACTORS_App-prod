@@ -99,16 +99,27 @@ with the event names/prices below.
 All three actors ship with **pay-per-event charging hooks** (`Actor.charge`) and only
 charge for successful results:
 
-| Actor | Event | Charged when | Suggested price |
-| :--- | :--- | :--- | :--- |
-| Google Maps Leads Searcher | `SCRAPE_RESULT` | one place saved with `status: "ok"` | $5.00 / 1,000 places |
-| LinkedIn Leads Collector | `PROFILE_SCRAPED` | one URL collected with `status: "ok"` | $10.00 / 1,000 profiles |
-| Business Email Extractor | `EMAIL_FOUND` | one unique email saved | $2.00 / 1,000 emails |
+| Actor | Event | Charged when | Price (PPE setting) | Free tier |
+| :--- | :--- | :--- | :--- | :--- |
+| Google Maps Leads Searcher | `RESULT` | one place saved with `status: "ok"` | **$0.0025** ($2.50 / 1,000 places) | 2,500 results/month |
+| LinkedIn Leads Collector | `PROFILE_SCRAPED` | one URL collected with `status: "ok"` | $0.01 ($10.00 / 1,000 profiles) | enable as desired |
+| Business Email Extractor | `EMAIL_FOUND` | one unique email saved | $0.002 ($2.00 / 1,000 emails) | enable as desired |
+
+Pricing method (validated against 2026 market rates): pay-per-event at **$2.50 per
+1,000 leads** sits inside the $1.40–$12 band of comparable lead-gen actors
+(automly LinkedIn Employees $1.50–$6, code_crafter Leads Finder $1.50, HarvestAPI
+LinkedIn $3–$12, scrapyx B2B Leads $1.40), comfortably covers ~$1–2/1k proxy+compute
+cost, and yields ~$2.00/1k net after Apify's 20% developer payout fee. A 2,500-result
+free tier maximizes trial conversions without material revenue loss. Do **not** go
+below $1.50/1k (unsustainable once residential proxy is counted); above ~$6/1k this
+actor loses to cheaper generic Maps scrapers.
 
 `partial` / `blocked` / `failed` / `no-results` records are never charged. Charges are
 no-ops until each actor's monetization is enabled in the Apify Console
 (**Publishing → Monetization → Pay per event**, define the event names above, pick the
-primary event). Publishing to the Store additionally requires the output schema (already
+primary event). For Google Maps Leads Searcher set: Paid actor **ON**, pricing model
+**Pay per event**, event `RESULT` at **$0.0025**, free monthly usage **2,500 events**.
+Publishing to the Store additionally requires the output schema (already
 in `.actor/output_schema.json` for every actor) and a completed Publishing checklist.
 
 ## Actor Quality Assets (per actor, in `.actor/`)

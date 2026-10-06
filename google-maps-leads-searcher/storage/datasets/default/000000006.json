@@ -1,0 +1,19 @@
+{
+	"searchQuery": "Dentists in New York, NY",
+	"status": "ok",
+	"source": "detail",
+	"placeId": "ChIJb-HkRuRYwokRF5qsEyxejyc",
+	"name": "209 NYC Dental",
+	"category": "Dentist",
+	"address": "209 E 56th St 1st floor, New York, NY 10022, United States",
+	"phone": "+12123552290",
+	"website": "https://www.209nycdental.com/?utm_source=google&utm_medium=organic&utm_campaign=gmb",
+	"rating": 4.9,
+	"reviewsCount": 49,
+	"openingHours": null,
+	"plusCode": "Plus code: Q25M+Q5 New York, USA",
+	"latitude": 40.7594146,
+	"longitude": -73.9671025,
+	"placeUrl": "https://www.google.com/maps/place/209+NYC+Dental/data=!4m7!3m6!1s0x89c258e446e4e16f:0x278f5e2c13ac9a17!8m2!3d40.7594146!4d-73.9671025!16s%2Fg%2F1thqbs3j!19sChIJb-HkRuRYwokRF5qsEyxejyc?authuser=0&hl=en&g_ep=EgoyMDI2MDkzMC4wIJJjKgBIAVAD&rclk=1",
+	"scrapedAt": "2026-10-05T09:09:53.423Z"
+}

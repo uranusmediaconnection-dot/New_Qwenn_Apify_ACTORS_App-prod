@@ -1,0 +1,19 @@
+{
+	"searchQuery": "Coffee shops in Brooklyn, NY",
+	"status": "ok",
+	"source": "detail",
+	"placeId": "ChIJ2wEUJhtbwokRIm0YqqLWk7o",
+	"name": "Casita of Brooklyn",
+	"category": "Coffee shop",
+	"address": "318 11th St, Brooklyn, NY 11215, United States",
+	"phone": "+13478895849",
+	"website": "http://casitaofbk.com/",
+	"rating": 4.8,
+	"reviewsCount": 48,
+	"openingHours": "Closed · Opens 6:30 am · See more hours",
+	"plusCode": "Plus code: M296+6V Brooklyn, New York, USA",
+	"latitude": 40.6680084,
+	"longitude": -73.9878008,
+	"placeUrl": "https://www.google.com/maps/place/Casita+of+Brooklyn/data=!4m7!3m6!1s0x89c25b1b261401db:0xba93d6a2aa186d22!8m2!3d40.6680084!4d-73.9878008!16s%2Fg%2F11qpw8cbcf!19sChIJ2wEUJhtbwokRIm0YqqLWk7o?authuser=0&hl=en&g_ep=EgoyMDI2MDkzMC4wIJJjKgBIAVAD&rclk=1",
+	"scrapedAt": "2026-10-05T09:09:30.844Z"
+}
